@@ -8,7 +8,7 @@ VERSION = '0.0.0'
 
 
 REQUIRES = [
-
+    'flask'
 ]
 
 setuptools.setup(

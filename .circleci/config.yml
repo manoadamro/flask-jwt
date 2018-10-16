@@ -1,0 +1,45 @@
+version: 2
+jobs:
+
+  test36:
+    docker:
+      # python 3.6.1 image
+      - image: circleci/python:3.6.1
+    steps:
+      - checkout
+      # Upgrade pip to > version 10
+      - run:
+          name: Upgrade pip
+          command: |
+            sudo pip3 install --upgrade pip
+      # install and run tox
+      - run:
+          name: Run tox tests
+          command: |
+            sudo pip3 install tox
+            tox -e py36
+
+  test37:
+    docker:
+      # python 3.7.0 image
+      - image: circleci/python:3.7.0
+    steps:
+      - checkout
+      # Upgrade pip to > version 10
+      - run:
+          name: Upgrade pip
+          command: |
+            sudo pip3 install --upgrade pip
+      # install and run tox
+      - run:
+          name: Run tox tests
+          command: |
+            sudo pip3 install tox
+            tox -e py37
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - test36
+      - test37

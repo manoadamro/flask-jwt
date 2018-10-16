@@ -41,5 +41,5 @@ workflows:
   version: 2
   test:
     jobs:
-      - test3.6
-      - test3.7
+      - test36
+      - test37

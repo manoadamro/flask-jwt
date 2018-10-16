@@ -2,7 +2,7 @@
 flask_jwt
 
 """
-from typing import Union, Dict, None
+from typing import Union, Dict
 import flask
 import jwt
 

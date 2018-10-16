@@ -4,7 +4,7 @@ jobs:
   test:
     docker:
       # python 3.6.1 image
-      - image: circleci/python:3.6.1
+      - image: circleci/python:3.7.0
     steps:
       - checkout
       # Upgrade pip to > version 10

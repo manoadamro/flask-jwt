@@ -2,7 +2,7 @@
 flask_jwt
 
 """
-from typing import Union, Dict, NoReturn
+from typing import Union, Dict, None
 import flask
 import jwt
 
@@ -44,7 +44,7 @@ class FlaskJWT:
         self.secret = secret
         self.algorithm = algorithm
 
-    def init_app(self, app: flask.Flask) -> NoReturn:
+    def init_app(self, app: flask.Flask) -> None:
         """
         registers before and after request methods with app
 
@@ -54,7 +54,7 @@ class FlaskJWT:
         app.before_request(self._cache_request_token)
         app.after_request(self._append_response_token)
 
-    def _cache_request_token(self) -> NoReturn:
+    def _cache_request_token(self) -> None:
         """
         called by flask before the view method is called
         attempts to find a JWT in the headers of the clients request,
@@ -67,7 +67,7 @@ class FlaskJWT:
             decoded = jwt.decode(jwt_string, self.secret, algorithms=[self.algorithm])
             flask.g[_G_KEY] = decoded
 
-    def _append_response_token(self, response: flask.Response) -> NoReturn:
+    def _append_response_token(self, response: flask.Response) -> None:
         """
         called by flask before the response is returned to the client
         if a JWT is stored in g, it will be returned in the response headers

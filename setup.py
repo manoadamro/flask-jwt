@@ -8,7 +8,8 @@ VERSION = '0.0.0'
 
 
 REQUIRES = [
-    'flask'
+    'flask',
+    'pyjwt'
 ]
 
 setuptools.setup(

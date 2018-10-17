@@ -5,12 +5,11 @@ import setuptools
 
 NAME = 'flask-jwt'
 VERSION = '0.0.0'
-
-
 REQUIRES = [
     'flask',
     'pyjwt'
 ]
+
 
 setuptools.setup(
     name=NAME,

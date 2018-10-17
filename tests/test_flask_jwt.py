@@ -1,7 +1,7 @@
 import unittest
 import jwt
 import flask
-import flask_jwt
+from flask_jwt import handler
 
 
 class FakeRequest:
@@ -9,7 +9,7 @@ class FakeRequest:
     test_authorization = {"test": "dict"}
 
     def __init__(self):
-        self.headers = {flask_jwt._HEADER_KEY: self.fake_token()}
+        self.headers = {handler._HEADER_KEY: self.fake_token()}
 
     @classmethod
     def fake_token(cls):
@@ -26,21 +26,21 @@ class FlaskJWTTest(unittest.TestCase):
 
     def test_decodes_token(self):
         app = flask.Flask(__name__)
-        token_handler = flask_jwt.FlaskJWT("secret", algorithm="HS256")
+        token_handler = handler.FlaskJWT("secret", algorithm="HS256")
         token_handler.init_app(app)
         with app.app_context():
             token_handler._cache_request_token()
-            self.assertEqual(flask.g[flask_jwt._G_KEY], FakeRequest.test_authorization)
+            self.assertEqual(flask.g[handler._G_KEY], FakeRequest.test_authorization)
 
     def test_encodes_token(self):
         app = flask.Flask(__name__)
-        token_handler = flask_jwt.FlaskJWT("secret", algorithm="HS256")
+        token_handler = handler.FlaskJWT("secret", algorithm="HS256")
         token_handler.init_app(app)
         with app.app_context():
             response = flask.Response(status=200)
-            flask.g[flask_jwt._G_KEY] = FakeRequest.test_authorization
+            flask.g[handler._G_KEY] = FakeRequest.test_authorization
             token_handler._append_response_token(response)
             self.assertEqual(
-                response.headers[flask_jwt._HEADER_KEY],
+                response.headers[handler._HEADER_KEY],
                 FakeRequest.fake_token().decode("utf8"),
             )

@@ -127,7 +127,10 @@ class MatchValue(JWTProtectionRule):
         if object_name.startswith("_") or not hasattr(self, object_name):
             raise AttributeError(f"invalid match object {object_name}")
         obj: Callable = getattr(self, object_name)
-        return obj(pointer)
+        try:
+            return obj(pointer)
+        except jsonpointer.JsonPointerException as ex:
+            raise JWTRuleError(ex)
 
     @staticmethod
     def _check_equal(values: List[Any]) -> bool:

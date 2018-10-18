@@ -50,6 +50,11 @@ def fake_method_one_value():
     return True
 
 
+@protection.JWTProtected(rules.MatchValue("jwt:/thingy/nope"))
+def fake_method_bad_pointer():
+    return True
+
+
 class FakeRequest:
     def __init__(self, headers=None, json=None, view_args=None, param=None, form=None):
         self.headers = headers
@@ -93,6 +98,10 @@ class MatchValueTest(unittest.TestCase):
     def test_invalid_object_name(self):
         flask.g = {handler._G_KEY: {"thingy": "true"}}
         self.assertRaises(AttributeError, fake_method_bad_object)
+
+    def test_invalid_bad_pointer(self):
+        flask.g = {handler._G_KEY: {"thingy": "true"}}
+        self.assertRaises(rules.JWTRuleError, fake_method_bad_pointer)
 
     def test_match_many_values(self):
         flask.g = {handler._G_KEY: {"thingy": "54321"}}

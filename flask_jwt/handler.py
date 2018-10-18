@@ -64,9 +64,11 @@ class FlaskJWT:
 
         :return: no return behaviour
         """
-        jwt_string = flask.request.headers.get(_HEADER_KEY, None)
+        jwt_string: str = flask.request.headers.get(_HEADER_KEY, None)
         if jwt_string:
-            decoded = jwt.decode(jwt_string, self.secret, algorithms=[self.algorithm])
+            decoded: str = jwt.decode(
+                jwt_string, self.secret, algorithms=[self.algorithm]
+            )
             flask.g[_G_KEY] = decoded
 
     def _append_response_token(self, response: flask.Response) -> None:
@@ -78,7 +80,7 @@ class FlaskJWT:
         :param response: flask Response instance, returned from the view method
         :return: no return behaviour
         """
-        jwt_object = flask.g.get(_G_KEY, None)
+        jwt_object: dict = flask.g.get(_G_KEY, None)
         if jwt_object:
-            encoded = jwt.encode(jwt_object, self.secret, self.algorithm)
+            encoded: str = jwt.encode(jwt_object, self.secret, self.algorithm)
             response.headers[_HEADER_KEY] = encoded

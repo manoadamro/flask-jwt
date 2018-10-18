@@ -51,7 +51,7 @@ class JWTProtected:
             :param kwargs: kargs passed to decorated function
             :return: whatever is returned from decorated function
             """
-            token = handler.current_token()
+            token: dict = handler.current_token()
             if not token:
                 raise rules.JWTRuleError("client did not supply a token")
             if not self.validate(token):

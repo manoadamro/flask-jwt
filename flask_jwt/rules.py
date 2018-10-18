@@ -127,7 +127,10 @@ class MatchValue(JWTProtectionRule):
         if object_name.startswith("_") or not hasattr(self, object_name):
             raise AttributeError(f"invalid match object {object_name}")
         obj: Callable = getattr(self, object_name)
-        return obj(pointer)
+        try:
+            return obj(pointer)
+        except jsonpointer.JsonPointerException as ex:
+            raise JWTRuleError(ex)
 
     @staticmethod
     def _check_equal(values: List[Any]) -> bool:
@@ -200,3 +203,32 @@ class MatchValue(JWTProtectionRule):
         :return: value at pointer
         """
         return jsonpointer.resolve_pointer(handler.current_token(), path)
+
+
+class AnyOf(JWTProtectionRule):
+    """
+    checks that one or more rules are true
+    """
+
+    def __init__(self, *rules):
+        """
+        creates an instance of AnyOf
+
+        :param rules: list of JWTProtectionRule instances
+        """
+        self.rules = rules
+
+    def __call__(self, token):
+        """
+        called by JWTProtected decorator when validating a token
+
+        :param token: token from current request headers
+        :return: True if rules are met else False
+        """
+        for rule in self.rules:
+            try:
+                if rule(token):
+                    return True
+            except JWTRuleError:
+                continue
+        raise JWTRuleError("jwt violates every rule in AnyOf")

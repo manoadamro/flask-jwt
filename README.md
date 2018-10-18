@@ -13,6 +13,7 @@ TO DO
 ## Installation
 
 ```
+pip3 install --upgrape pip
 pip3 install git+http://github.com/manoadamro/flask-jwt
 ```
 

@@ -25,3 +25,4 @@ protected = protection.JWTProtected
 ProtectionRule = rules.JWTProtectionRule
 HasScopes = rules.HasScopes
 MatchValue = rules.MatchValue
+AnyOf = rules.AnyOf

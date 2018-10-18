@@ -203,3 +203,32 @@ class MatchValue(JWTProtectionRule):
         :return: value at pointer
         """
         return jsonpointer.resolve_pointer(handler.current_token(), path)
+
+
+class AnyOf(JWTProtectionRule):
+    """
+    checks that one or more rules are true
+    """
+
+    def __init__(self, *rules):
+        """
+        creates an instance of AnyOf
+
+        :param rules: list of JWTProtectionRule instances
+        """
+        self.rules = rules
+
+    def __call__(self, token):
+        """
+        called by JWTProtected decorator when validating a token
+
+        :param token: token from current request headers
+        :return: True if rules are met else False
+        """
+        for rule in self.rules:
+            try:
+                if rule(token):
+                    return True
+            except JWTRuleError:
+                continue
+        raise JWTRuleError("jwt violates every rule in AnyOf")

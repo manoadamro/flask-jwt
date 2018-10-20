@@ -5,11 +5,10 @@ rules.py
 from typing import Dict, Any, List, Callable
 import jsonpointer
 import flask
-import jwt
 from . import handler
 
 
-class JWTRuleError(jwt.PyJWTError):
+class JWTRuleError(handler.FlaskJWTError):
     """
     raised when one or more jwt protection rules fail
     """

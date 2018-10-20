@@ -2,7 +2,8 @@
 handler.py
 
 """
-from typing import Union, Dict
+from typing import Union, Dict, List
+import time
 import flask
 import jwt
 
@@ -12,6 +13,27 @@ _HEADER_KEY = "Authorization"
 
 # the key associated with the jwt in flasks g object
 _G_KEY = "_JWT"
+
+# encoding for request/response headers
+_ENCODING = "utf8"
+
+
+class FlaskJWTError(jwt.PyJWTError, PermissionError):
+    """
+    base class for jwt related errors
+
+    """
+
+    ...
+
+
+class FlaskJWTValidationError(FlaskJWTError):
+    """
+    raised when one or more jwt claims are wrong
+
+    """
+
+    ...
 
 
 def current_token() -> Union[Dict, None]:
@@ -24,7 +46,7 @@ def current_token() -> Union[Dict, None]:
     return flask.g.get(_G_KEY, None)
 
 
-class FlaskJWT:
+class JWTHandler:
     """
     Handles the encoding and decoding of tokens in flask requests and responses
 
@@ -34,17 +56,33 @@ class FlaskJWT:
         token_handler = flask_jwt.FlaskJWT('secret', algorithm="HS256")
         token_handler.init_app(app)
 
+        @app.route('/auth/<user_id>')
+        def auth(user):
+            token_handler.generate_jwt(id=user_id)
     """
 
-    def __init__(self, secret, algorithm="HS256"):
+    def __init__(
+        self,
+        secret: str,
+        algorithm: str = "HS256",
+        lifespan: int = None,
+        issuer: Union[str, List[str]] = None,
+        audience: Union[str, List[str]] = None,
+    ):
         """
         creates an instance of FlaskJWT
 
         :param secret: signing secret
         :param algorithm: signing algorithm
+        :param lifespan: lifespan of the token in seconds (<= 0 for indefinite)
+        :param issuer: token issuer (iss)
+        :param audience: token audience (aud)
         """
         self.secret = secret
         self.algorithm = algorithm
+        self.lifespan = lifespan
+        self.issuer = issuer
+        self.audience = audience
 
     def init_app(self, app: flask.Flask) -> None:
         """
@@ -65,11 +103,24 @@ class FlaskJWT:
         :return: no return behaviour
         """
         jwt_string: str = flask.request.headers.get(_HEADER_KEY, None)
-        if jwt_string:
+        if not jwt_string:
+            return
+
+        jwt_bytes: bytes = jwt_string.encode(_ENCODING)
+
+        try:
             decoded: str = jwt.decode(
-                jwt_string, self.secret, algorithms=[self.algorithm]
+                jwt_bytes,
+                self.secret,
+                algorithms=[self.algorithm],
+                audience=self.audience,
+                issuer=self.issuer,
             )
-            flask.g[_G_KEY] = decoded
+
+        except jwt.PyJWTError as ex:
+            raise FlaskJWTValidationError(ex)
+
+        flask.g[_G_KEY] = decoded
 
     def _append_response_token(self, response: flask.Response) -> None:
         """
@@ -80,7 +131,14 @@ class FlaskJWT:
         :param response: flask Response instance, returned from the view method
         :return: no return behaviour
         """
+
         jwt_object: dict = flask.g.get(_G_KEY, None)
-        if jwt_object:
-            encoded: str = jwt.encode(jwt_object, self.secret, self.algorithm)
-            response.headers[_HEADER_KEY] = encoded
+        if not jwt_object:
+            return
+
+        if self.lifespan:
+            jwt_object["exp"] = time.time() + self.lifespan
+
+        encoded: bytes = jwt.encode(jwt_object, self.secret, self.algorithm)
+        decoded: str = encoded.decode(_ENCODING)
+        response.headers[_HEADER_KEY] = decoded

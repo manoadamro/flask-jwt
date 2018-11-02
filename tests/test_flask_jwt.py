@@ -5,17 +5,17 @@ import flask_jwt
 from . import mocks
 
 
-class TestFlaskJWT(unittest.TestCase):
+class FlaskJWTTest(unittest.TestCase):
     def setUp(self):
         self.app = flask.Flask(__name__)
-        self.flaskjwt = flask_jwt.FlaskJWT(secret="secret", lifespan=60)
+        self.flaskjwt = flask_jwt.handlers.FlaskJWT(secret="secret", lifespan=60)
         self.flaskjwt.init_app(self.app)
 
     def test_no_token(self):
         mock_store = mocks.MockStore()
         mock_request = mocks.MockRequest(headers={})
         with mocks.patch_object(flask, "request", mock_request), mocks.patch_object(
-            flask_jwt.FlaskJWT, "store", mock_store
+            flask_jwt.handlers.FlaskJWT, "store", mock_store
         ):
             self.flaskjwt._pre_request_callback()
             self.assertEqual(mock_store.obj, {})
@@ -30,7 +30,7 @@ class TestFlaskJWT(unittest.TestCase):
         mock_store = mocks.MockStore()
         mock_request = mocks.MockRequest(headers={"Authorization": token})
         with mocks.patch_object(flask, "request", mock_request), mocks.patch_object(
-            flask_jwt.FlaskJWT, "store", mock_store
+            flask_jwt.handlers.FlaskJWT, "store", mock_store
         ):
             self.flaskjwt._pre_request_callback()
             self.assertEqual(mock_store.obj, token_body)

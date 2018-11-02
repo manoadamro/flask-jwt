@@ -4,9 +4,9 @@ import flask_jwt
 from . import mocks
 
 
-class TestJWTStore(unittest.TestCase):
+class JWTStoreTest(unittest.TestCase):
     def setUp(self):
-        self.store = flask_jwt._Store
+        self.store = flask_jwt.handlers._Store
 
     def test_get_set(self):
         fake_g_attrs = {"some": "thing", "other": True}

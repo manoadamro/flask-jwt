@@ -4,11 +4,11 @@ import flask_jwt
 from . import mocks
 
 
-class TestJWTCoder(unittest.TestCase):
+class JWTCoderTest(unittest.TestCase):
     fake_jwt = {"some": "thing"}
 
     def setUp(self):
-        self.coder = flask_jwt._Coder
+        self.coder = flask_jwt.handlers._Coder
 
     def test_get_set(self):
         token = self.coder.encode(self.fake_jwt, "secret", "HS256")
@@ -20,10 +20,10 @@ class TestJWTCoder(unittest.TestCase):
 
     def test_encode_error(self):
         with mocks.patch_object(
-            jwt, "encode", mocks.raise_error(flask_jwt.JWTEncodeError)
+            jwt, "encode", mocks.raise_error(flask_jwt.errors.JWTEncodeError)
         ):
             self.assertRaises(
-                flask_jwt.JWTEncodeError,
+                flask_jwt.errors.JWTEncodeError,
                 self.coder.encode,
                 self.fake_jwt,
                 "secret",
@@ -32,10 +32,10 @@ class TestJWTCoder(unittest.TestCase):
 
     def test_decode_error(self):
         with mocks.patch_object(
-            jwt, "decode", mocks.raise_error(flask_jwt.JWTDecodeError)
+            jwt, "decode", mocks.raise_error(flask_jwt.errors.JWTDecodeError)
         ):
             self.assertRaises(
-                flask_jwt.JWTDecodeError,
+                flask_jwt.errors.JWTDecodeError,
                 self.coder.decode,
                 self.fake_jwt,
                 "secret",

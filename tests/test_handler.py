@@ -4,12 +4,12 @@ import flask_jwt
 from . import mocks
 
 
-class TestJWTHandler(unittest.TestCase):
+class JWTHandlerTest(unittest.TestCase):
     def setUp(self):
-        self.store = flask_jwt._Store
+        self.store = flask_jwt.handlers._Store
 
     def test_encode_decode(self):
-        handler = flask_jwt._Handler(
+        handler = flask_jwt.handlers.JWTHandler(
             "secret", 15 * 60, issuer="thing", audience="thingy"
         )
         token = {"thing": True}
@@ -34,7 +34,7 @@ class TestJWTHandler(unittest.TestCase):
 
     def test_generate_token(self):
         token = {"thing": True}
-        default = ["iat"]
+        default = ["iat", "scp"]
         mock = mocks.MockStore(token)
         with mocks.patch_object(flask_jwt.FlaskJWT, "store", mock):
             flask_jwt.FlaskJWT.generate_token(**{"thing": True})

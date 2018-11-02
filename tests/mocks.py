@@ -1,5 +1,6 @@
 from typing import Any, Dict, Callable
 import unittest.mock
+from flask_jwt import rules
 
 
 patch_object = unittest.mock.patch.object
@@ -10,6 +11,14 @@ def raise_error(ex) -> Callable:
         raise ex
 
     return _raise
+
+
+class MockRule(rules.JWTRule):
+    def __init__(self, return_value):
+        self.return_value = return_value
+
+    def __call__(self, _):
+        return self.return_value
 
 
 class MockStore:

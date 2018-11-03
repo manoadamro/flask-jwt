@@ -112,9 +112,9 @@ class JWTHandler:
         return cls.store.get()
 
     @classmethod
-    def generate_token(cls, scopes: List[str] = None, **fields: Any) -> None:
+    def generate_token(cls, *scopes: str, **fields: Any) -> None:
         fields["iat"] = time.time()
-        fields["scp"] = scopes or []
+        fields["scp"] = scopes
         cls.store.set(fields)
 
 
@@ -130,18 +130,24 @@ class FlaskJWT(JWTHandler):
     def init_app(self, app: flask.Flask) -> None:
         self.app = app
         self.app.before_request(self._pre_request_callback)
-        self.app.after_request(self._pre_request_callback)
+        self.app.after_request(self._post_request_callback)
+
+        self.app.errorhandler(errors.JWTDecodeError)(self._handle_user_error)
+        self.app.errorhandler(errors.JWTValidationError)(self._handle_user_error)
+
+    @staticmethod
+    def _handle_user_error(_: Exception):
+        return "invalid token", 403
 
     def _pre_request_callback(self) -> None:
         token_string = flask.request.headers.get(self.header_key, None)
-        if not token_string:
-            return
-        decoded = self.decode(token_string, self.verify)
-        self.store.set(decoded)
+        if token_string:
+            decoded = self.decode(token_string, self.verify)
+            self.store.set(decoded)
 
     def _post_request_callback(self, response: flask.Response) -> None:
         token_dict = self.store.get()
-        if not token_dict:
-            return
-        encoded = self.encode(token_dict)
-        response.headers.set(self.header_key, encoded)
+        if token_dict:
+            encoded = self.encode(token_dict)
+            response.headers.set(self.header_key, encoded)
+        return response

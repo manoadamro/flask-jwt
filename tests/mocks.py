@@ -33,8 +33,19 @@ class MockStore:
 
 
 class MockRequest:
-    def __init__(self, headers: Dict = None):
+    def __init__(
+        self,
+        headers: Dict = None,
+        json: Dict = None,
+        args: Dict = None,
+        form: Dict = None,
+        view_args: Dict = None,
+    ):
         self.headers = headers or {}
+        self.json = json
+        self.args = args
+        self.form = form
+        self.view_args = view_args
 
 
 class FakeG:

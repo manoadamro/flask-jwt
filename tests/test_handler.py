@@ -34,10 +34,11 @@ class JWTHandlerTest(unittest.TestCase):
 
     def test_generate_token(self):
         token = {"thing": True}
+        scopes = ["read:thing", "write:thing"]
         default = ["iat", "scp"]
         mock = mocks.MockStore(token)
         with mocks.patch_object(flask_jwt.FlaskJWT, "store", mock):
-            flask_jwt.FlaskJWT.generate_token(**{"thing": True})
+            flask_jwt.FlaskJWT.generate_token(*scopes, **{"thing": True})
             self.assertEqual(len(token) + len(default), len(mock.obj))
             for key in token:
                 self.assertTrue(key in mock.obj)

@@ -10,13 +10,19 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install
+          name: prep
           command: |
-            sudo pip3 install --upgrade pip tox
+            sudo pip3 install --upgrade pip tox coveralls
       - run:
-          name: Run tests
+          name: test
           command: |
             tox -e py36
+            coveralls
+    notify:
+      webhooks:
+        - url: https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN
+    post:
+      - coveralls
 
   test-3.7:
     docker:
@@ -27,11 +33,11 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install
+          name: prep
           command: |
             sudo pip3 install --upgrade pip tox coveralls
       - run:
-          name: Run tests
+          name: test
           command: |
             tox -e py37
             coveralls

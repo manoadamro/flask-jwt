@@ -3,7 +3,7 @@ from . import errors, handlers, rules, decorators
 
 FlaskJWT = handlers.FlaskJWT
 
-current_token = property(fget=handlers.JWTHandler.current_token)
+current_token = handlers.JWTHandler.current_token
 generate_token = handlers.JWTHandler.generate_token
 
 jwt_protected = decorators.JWTProtected

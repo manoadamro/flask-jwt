@@ -121,10 +121,14 @@ class JWTHandler:
 class FlaskJWT(JWTHandler):
 
     header_key = "Authorization"
+    token_prefix = "Bearer "
 
-    def __init__(self, *args: Any, verify=True, **kwargs: Any):
+    def __init__(
+        self, *args: Any, verify: bool = True, auto_update: bool = False, **kwargs: Any
+    ):
         super(FlaskJWT, self).__init__(*args, **kwargs)
         self.verify = verify
+        self.auto_update = auto_update
         self.app = None
 
     def init_app(self, app: flask.Flask) -> None:
@@ -140,14 +144,20 @@ class FlaskJWT(JWTHandler):
         return "invalid token", 403
 
     def _pre_request_callback(self) -> None:
+        prefix = self.token_prefix
         token_string = flask.request.headers.get(self.header_key, None)
         if token_string:
+            if not token_string.startswith(prefix) and len(token_string) > len(prefix):
+                raise errors.JWTValidationError("invalid bearer token")
+            token_string = token_string[len(prefix) :]
             decoded = self.decode(token_string, self.verify)
             self.store.set(decoded)
 
     def _post_request_callback(self, response: flask.Response) -> None:
-        token_dict = self.store.get()
-        if token_dict:
-            encoded = self.encode(token_dict)
-            response.headers.set(self.header_key, encoded)
+        prefix = self.token_prefix
+        if self.auto_update:
+            token_dict = self.store.get()
+            if token_dict:
+                encoded = self.encode(token_dict)
+                response.headers.set(self.header_key, f"{prefix}{encoded}")
         return response

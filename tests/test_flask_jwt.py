@@ -8,8 +8,20 @@ from . import mocks
 class FlaskJWTTest(unittest.TestCase):
     def setUp(self):
         self.app = flask.Flask(__name__)
-        self.flaskjwt = flask_jwt.handlers.FlaskJWT("secret", 60)
+        self.flaskjwt = flask_jwt.handlers.FlaskJWT("secret", 60, auto_update=True)
         self.flaskjwt.init_app(self.app)
+
+    def test_no_bearer(self):
+        token_body = {"thing": True}
+        token = jwt.encode(token_body, "secret").decode("utf8")
+        mock_store = mocks.MockStore()
+        mock_request = mocks.MockRequest(headers={"Authorization": token})
+        with mocks.patch_object(flask, "request", mock_request), mocks.patch_object(
+            flask_jwt.handlers.FlaskJWT, "store", mock_store
+        ):
+            self.assertRaises(
+                flask_jwt.errors.JWTValidationError, self.flaskjwt._pre_request_callback
+            )
 
     def test_no_token(self):
         mock_store = mocks.MockStore()
@@ -28,7 +40,7 @@ class FlaskJWTTest(unittest.TestCase):
         token_body = {"thing": True}
         token = jwt.encode(token_body, "secret").decode("utf8")
         mock_store = mocks.MockStore()
-        mock_request = mocks.MockRequest(headers={"Authorization": token})
+        mock_request = mocks.MockRequest(headers={"Authorization": f"Bearer {token}"})
         with mocks.patch_object(flask, "request", mock_request), mocks.patch_object(
             flask_jwt.handlers.FlaskJWT, "store", mock_store
         ):

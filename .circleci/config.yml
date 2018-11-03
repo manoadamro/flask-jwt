@@ -1,7 +1,7 @@
 version: 2
 jobs:
 
-  test36:
+  test-3.6:
     docker:
       - image: circleci/python:3.6.1
     environment:
@@ -14,11 +14,11 @@ jobs:
           command: |
             sudo pip3 install --upgrade pip tox
       - run:
-          name: Run coveralls
+          name: Run tests
           command: |
             tox -e py36
 
-  test37:
+  test-3.7:
     docker:
       - image: circleci/python:3.7.0
     environment:
@@ -31,7 +31,7 @@ jobs:
           command: |
             sudo pip3 install --upgrade pip tox coveralls
       - run:
-          name: Run coveralls
+          name: Run tests
           command: |
             tox -e py37
             coveralls
@@ -45,5 +45,5 @@ workflows:
   version: 2
   test:
     jobs:
-      - test36
-      - test37
+      - test-3.6
+      - test-3.7

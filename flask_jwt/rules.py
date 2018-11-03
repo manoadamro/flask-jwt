@@ -22,9 +22,13 @@ class MatchValue(JWTRule):
         self.matchers: List[(Callable, str)] = [
             self._resolve_path(path) for path in paths
         ]
+        if len(self.matchers) < 2:
+            raise ValueError(f"MatchValue requires two or more paths")
 
     def __call__(self, token: Dict) -> bool:
-        return all(matcher[0](matcher[1], token) for matcher in self.matchers)
+        return self._check_equal(
+            [matcher[0](matcher[1], token) for matcher in self.matchers]
+        )
 
     def _resolve_path(self, path) -> (Callable, str):
         object_name, pointer = path.split(":")
@@ -37,8 +41,6 @@ class MatchValue(JWTRule):
 
     @staticmethod
     def _check_equal(values: List[Any]) -> bool:
-        if len(values) < 2:
-            return True
         return all(values[0] == rest for rest in values[1:])
 
     @staticmethod

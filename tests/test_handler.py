@@ -1,79 +1,45 @@
 import unittest
-from unittest.mock import patch
-import jwt
-import flask
-from flask_jwt import handler, JWTValidationError
+import time
+import flask_jwt
+from . import mocks
 
 
-class FakeRequest:
+class JWTHandlerTest(unittest.TestCase):
+    def setUp(self):
+        self.store = flask_jwt.handlers._Store
 
-    test_authorization = {"test": "dict"}
-
-    def __init__(self, headers=None):
-        self.headers = headers or {handler._HEADER_KEY: self.fake_token()}
-
-    @classmethod
-    def fake_token(cls):
-        return jwt.encode(cls.test_authorization, "secret", algorithm="HS256").decode(
-            "utf8"
+    def test_encode_decode(self):
+        handler = flask_jwt.handlers.JWTHandler(
+            "secret", 15 * 60, issuer="thing", audience="thingy"
         )
+        token = {"thing": True}
+        encoded = handler.encode(token, not_before=time.time())
+        self.assertIsInstance(encoded, str)
+        decoded = handler.decode(encoded)
+        self.assertIsInstance(decoded, dict)
+        self.assertEqual(len(token), len(decoded))
+        for key in token:
+            self.assertTrue(key in decoded)
+            self.assertEqual(decoded[key], token[key])
 
+    def test_current_token(self):
+        token = {"thing": True}
+        mock = mocks.MockStore(token)
+        with mocks.patch_object(flask_jwt.FlaskJWT, "store", mock):
+            obj = flask_jwt.FlaskJWT.current_token()
+            self.assertEqual(len(token), len(obj))
+            for key in token:
+                self.assertTrue(key in obj)
+                self.assertEqual(token[key], obj[key])
 
-class HandlerTest(unittest.TestCase):
-    def tearDown(self):
-        flask.g = {}
-
-    def test_decodes_token(self):
-        app = flask.Flask(__name__)
-        token_handler = handler.JWTHandler("secret", algorithm="HS256", lifespan=300)
-        token_handler.init_app(app)
-        with app.app_context():
-            with patch.object(flask, "request", FakeRequest()):
-                token_handler._cache_request_token()
-                self.assertEqual(
-                    flask.g[handler._G_KEY], FakeRequest.test_authorization
-                )
-
-    def test_handles_null_request_token(self):
-        app = flask.Flask(__name__)
-        token_handler = handler.JWTHandler("secret", algorithm="HS256", lifespan=300)
-        token_handler.init_app(app)
-        with app.app_context():
-            with patch.object(flask, "request", FakeRequest(headers={"nope": "nope"})):
-                token_handler._cache_request_token()
-                self.assertIsNone(flask.g.get(handler._G_KEY))
-
-    def test_encodes_token(self):
-        app = flask.Flask(__name__)
-        token_handler = handler.JWTHandler("secret", algorithm="HS256", lifespan=300)
-        token_handler.init_app(app)
-        with app.app_context():
-            with patch.object(flask, "request", FakeRequest()):
-                response = flask.Response(status=200)
-                flask.g[handler._G_KEY] = FakeRequest.test_authorization
-                token_handler._append_response_token(response)
-                self.assertEqual(
-                    response.headers[handler._HEADER_KEY], FakeRequest.fake_token()
-                )
-
-    def test_handles_null_response_token(self):
-        app = flask.Flask(__name__)
-        token_handler = handler.JWTHandler("secret", algorithm="HS256", lifespan=300)
-        token_handler.init_app(app)
-        with app.app_context():
-            response = flask.Response(status=200)
-            flask.g = {}
-            token_handler._append_response_token(response)
-            self.assertIsNone(response.headers.get(handler._HEADER_KEY, None))
-
-    def test_raises_error_when_invalid(self):
-        app = flask.Flask(__name__)
-        token_handler = handler.JWTHandler(
-            "secret", algorithm="HS256", issuer="issuer1"
-        )
-        token_handler.init_app(app)
-        with app.app_context():
-            with patch.object(flask, "request", FakeRequest()):
-                self.assertRaises(
-                    JWTValidationError, token_handler._cache_request_token
-                )
+    def test_generate_token(self):
+        token = {"thing": True}
+        scopes = ["read:thing", "write:thing"]
+        default = ["iat", "scp"]
+        mock = mocks.MockStore(token)
+        with mocks.patch_object(flask_jwt.FlaskJWT, "store", mock):
+            flask_jwt.FlaskJWT.generate_token(*scopes, **{"thing": True})
+            self.assertEqual(len(token) + len(default), len(mock.obj))
+            for key in token:
+                self.assertTrue(key in mock.obj)
+                self.assertEqual(token[key], mock.obj[key])

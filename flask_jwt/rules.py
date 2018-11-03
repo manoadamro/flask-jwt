@@ -1,233 +1,91 @@
-"""
-rules.py
-
-"""
-from typing import Dict, Any, List, Callable
-import jsonpointer
+from typing import Any, Callable, Dict, List
 import flask
-from . import handler
+import jsonpointer
 
 
-class JWTRuleError(handler.FlaskJWTError):
-    """
-    raised when one or more jwt protection rules fail
-    """
-
-    ...
-
-
-class JWTProtectionRule:
-    """
-    base class for jwt protection rules
-
-    example:
-
-    class HasKey(JWTProtectionRule):
-
-        def __init__(self, key):
-            self.key = key
-
-        def __call__(self, token):
-            return self.key in token
-    """
-
+class JWTRule:
     def __call__(self, token: Dict) -> bool:
-        """
-        called by JWTProtected decorator
-
-        :param token: token from current request headers
-        :return: True if rules are met else False
-        """
-        raise NotImplementedError(
-            f"{self.__class__.__name__} should not be implemented directly"
-        )
+        raise NotImplementedError
 
 
-class HasScopes(JWTProtectionRule):
-    """
-    checks that a jwt contains all of the defined scopes
-
-    example:
-
-        @JWTProtected(HasScopes('read:thing', 'write:thing'))
-        def some_method():
-            ...
-    """
-
+class HasScopes(JWTRule):
     def __init__(self, *scopes: str):
-        """
-        ensures that the current jwt contains all of the specified scopes
-        scopes are usually defined with an operation followed by an object, separated by a colon
-
-        example:
-            read:the_thing
-            write:the_thing
-
-        :param scopes: list of scopes (strings)
-        """
         self.scopes = scopes
 
     def __call__(self, token: Dict) -> bool:
-        """
-        called by JWTProtected decorator when validating a token
-
-        :param token: token from current request headers
-        :return: True if rules are met else False
-        """
-        jwt_scopes: list = token.get("scopes", [])
-        missing_scopes: list = [
-            scope for scope in self.scopes if scope not in jwt_scopes
-        ]
-        if missing_scopes:
-            missing_scopes: str = ", ".join(missing_scopes)
-            raise JWTRuleError(f"jwt is missing a required scope {missing_scopes}")
-        return True
+        jwt_scopes: List[str] = token.get("scp", [])
+        return all(scope in jwt_scopes for scope in self.scopes)
 
 
-class MatchValue(JWTProtectionRule):
-    """
-    matches a value in the jwt with a value in the request
-
-    example:
-
-        @JWTProtected(MatchValue('json:thing/sub_thing', 'jwt:thingy'))
-        def some_method():
-            ...
-    """
-
+class MatchValue(JWTRule):
     def __init__(self, *paths):
-        """
-        creates an instance of MatchValue
-
-        :param paths: a tuple of json pointers
-        """
-        self.paths = paths
+        self.matchers: List[(Callable, str)] = [
+            self._resolve_path(path) for path in paths
+        ]
+        if len(self.matchers) < 2:
+            raise ValueError(f"MatchValue requires two or more paths")
 
     def __call__(self, token: Dict) -> bool:
-        """
-        called by JWTProtected decorator when validating a token
+        return self._check_equal(
+            [matcher[0](matcher[1], token) for matcher in self.matchers]
+        )
 
-        :param token: token from current request headers
-        :return: True if rules are met else False
-        """
-        values: List[Any] = [self._resolve_path(path) for path in self.paths]
-        return self._check_equal(values)
-
-    def _resolve_path(self, path: str) -> Any:
-        """
-        returns a value from a json pointer
-
-        :param path: object name and json pointer separated with ':'
-        :return: value at pointer
-        """
+    def _resolve_path(self, path) -> (Callable, str):
         object_name, pointer = path.split(":")
         if not pointer.startswith("/"):
             pointer = f"/{pointer}"
         if object_name.startswith("_") or not hasattr(self, object_name):
             raise AttributeError(f"invalid match object {object_name}")
         obj: Callable = getattr(self, object_name)
-        try:
-            return obj(pointer)
-        except jsonpointer.JsonPointerException as ex:
-            raise JWTRuleError(ex)
+        return obj, pointer
 
     @staticmethod
     def _check_equal(values: List[Any]) -> bool:
-        """
-        checks that every value in a given list is identical
-
-        :param values: the list of values to check
-        :return: True if every value in the list is identical
-        """
-        if len(values) < 2:
-            return True
         return all(values[0] == rest for rest in values[1:])
 
     @staticmethod
-    def header(path: str) -> Any:
-        """
-        returns a value from the request header from a json pointer
-
-        :param path: object name and json pointer separated with ':'
-        :return: value at pointer
-        """
+    def header(path: str, _: Any) -> Any:
         return jsonpointer.resolve_pointer(flask.request.headers, path)
 
     @staticmethod
-    def json(path: str) -> Any:
-        """
-        returns a value from the request json from a json pointer
-
-        :param path: object name and json pointer separated with ':'
-        :return: value at pointer
-        """
+    def json(path: str, _: Any) -> Any:
         return jsonpointer.resolve_pointer(flask.request.json, path)
 
     @staticmethod
-    def url(path: str) -> Any:
-        """
-        returns a value from the url from a json pointer
-
-        :param path: object name and json pointer separated with ':'
-        :return: value at pointer
-        """
+    def url(path: str, _: Any) -> Any:
         return jsonpointer.resolve_pointer(flask.request.view_args, path)
 
     @staticmethod
-    def param(path: str) -> Any:
-        """
-        returns a value from a url parameter from a json pointer
-
-        :param path: object name and json pointer separated with ':'
-        :return: value at pointer
-        """
+    def param(path: str, _: Any) -> Any:
         return jsonpointer.resolve_pointer(flask.request.args, path)
 
     @staticmethod
-    def form(path: str) -> Any:
-        """
-        returns a value from the request form from a json pointer
-
-        :param path: object name and json pointer separated with ':'
-        :return: value at pointer
-        """
+    def form(path: str, _: Any) -> Any:
         return jsonpointer.resolve_pointer(flask.request.form, path)
 
     @staticmethod
-    def jwt(path: str) -> Any:
-        """
-        returns a value from the request jwt from a json pointer
-
-        :param path: object name and json pointer separated with ':'
-        :return: value at pointer
-        """
-        return jsonpointer.resolve_pointer(handler.current_token(), path)
+    def jwt(path: str, token: Dict) -> Any:
+        return jsonpointer.resolve_pointer(token, path)
 
 
-class AnyOf(JWTProtectionRule):
-    """
-    checks that one or more rules are true
-    """
-
-    def __init__(self, *rules):
-        """
-        creates an instance of AnyOf
-
-        :param rules: list of JWTProtectionRule instances
-        """
+class _CollectionRule(JWTRule):
+    def __init__(self, *rules: JWTRule):
         self.rules = rules
 
-    def __call__(self, token):
-        """
-        called by JWTProtected decorator when validating a token
+    def __call__(self, token: Dict) -> bool:
+        raise NotImplementedError
 
-        :param token: token from current request headers
-        :return: True if rules are met else False
-        """
-        for rule in self.rules:
-            try:
-                if rule(token):
-                    return True
-            except JWTRuleError:
-                continue
-        raise JWTRuleError("jwt violates every rule in AnyOf")
+
+class AnyOf(_CollectionRule):
+    def __call__(self, token: Dict) -> bool:
+        return any(rule(token) for rule in self.rules)
+
+
+class AllOf(_CollectionRule):
+    def __call__(self, token: Dict) -> bool:
+        return all(rule(token) for rule in self.rules)
+
+
+class NoneOf(_CollectionRule):
+    def __call__(self, token: Dict) -> bool:
+        return not any(rule(token) for rule in self.rules)

@@ -1,62 +1,20 @@
-"""
-flask_jwt
-
-example:
-
-    from flask import Flask
-    from flask_jwt import JWTHandler, JWTGenerator, jwt_protected, HasScopes, MatchValue, AnyOf
-
-    app = Flask(__name__)
-
-    jwt_handler = JWTHandler('secret')
-    jwt_handler.init_app(app)
-
-    jwt_generator = JWTGenerator('my_issuer', ['audience_1', 'audience_2'])
+from . import errors, handlers, rules, decorators
 
 
-    @app.route('/<uid>/token')
-    def auth(uid):
-        jwt_generator.generate(['read:thing', 'write:thing'], uid=uid)
-        ...
+FlaskJWT = handlers.FlaskJWT
 
+current_token = property(fget=handlers.JWTHandler.current_token)
+generate_token = handlers.JWTHandler.generate_token
 
-    @app.route('/<user_id>/thing')
-    @jwt_protected(HasScopes('read:thing', 'write:thing'))
-    def thing(user_id):
-        ...
+jwt_protected = decorators.JWTProtected
 
-
-    @app.route('/<uid>/other')
-    @jwt_protected(MatchValue('token:uid', 'url:uid'))
-    def other(uid):
-        ...
-
-
-    @app.route('/<user_id>/thing')
-    @jwt_protected(AnyOf(HasScopes('read:thing', 'write:thing'), MatchValue('token:uid', 'url:uid')))
-    def mix(user_id):
-        ...
-"""
-from . import handler, generator, protection, rules
-
-
-# handler stuff...
-JWTHandler = handler.JWTHandler
-current_token = handler.current_token
-
-# generator stuff...
-JWTGenerator = generator.JWTGenerator
-
-# protection stuff...
-jwt_protected = protection.JWTProtected
-
-# protection rules...
-ProtectionRule = rules.JWTProtectionRule
+JWTRule = rules.JWTRule
 HasScopes = rules.HasScopes
 MatchValue = rules.MatchValue
+AllOf = rules.AllOf
 AnyOf = rules.AnyOf
+NoneOf = rules.NoneOf
 
-# errors...
-JWTError = handler.FlaskJWTError
-JWTRuleError = rules.JWTRuleError
-JWTValidationError = handler.FlaskJWTValidationError
+JWTEncodeError = errors.JWTEncodeError
+JWTDecodeError = errors.JWTDecodeError
+JWTValidationError = errors.JWTValidationError

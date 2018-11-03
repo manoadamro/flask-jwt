@@ -31,7 +31,7 @@ class TestApi(flask_testing.TestCase):
     def create_app(self):
         app = Flask(__name__)
         app.register_blueprint(blueprint)
-        jwt = FlaskJWT("secret", 300)
+        jwt = FlaskJWT("secret", 300, auto_update=True)
         jwt.init_app(app)
         return app
 

@@ -8,7 +8,7 @@ from . import mocks
 class FlaskJWTTest(unittest.TestCase):
     def setUp(self):
         self.app = flask.Flask(__name__)
-        self.flaskjwt = flask_jwt.handlers.FlaskJWT(secret="secret", lifespan=60)
+        self.flaskjwt = flask_jwt.handlers.FlaskJWT("secret", 60)
         self.flaskjwt.init_app(self.app)
 
     def test_no_token(self):

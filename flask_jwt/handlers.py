@@ -153,7 +153,7 @@ class FlaskJWT(JWTHandler):
             decoded = self.decode(token_string, self.verify)
             self.store.set(decoded)
 
-    def _post_request_callback(self, response: flask.Response) -> None:
+    def _post_request_callback(self, response: flask.Response) -> flask.Response:
         prefix = self.token_prefix
         if self.auto_update:
             token_dict = self.store.get()
